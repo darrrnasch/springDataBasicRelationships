@@ -1,6 +1,15 @@
 package com.derniweb.springdatabeginner;
 
 import com.derniweb.springdatabeginner.entity.Treadmill;
+import com.derniweb.springdatabeginner.onetomany.bidirectional.PostBidirRepository;
+import com.derniweb.springdatabeginner.onetomany.bidirectional.PostCommentbidir;
+import com.derniweb.springdatabeginner.onetomany.bidirectional.Postbidir;
+import com.derniweb.springdatabeginner.onetomany.unidirectional.Post;
+import com.derniweb.springdatabeginner.onetomany.unidirectional.PostComment;
+import com.derniweb.springdatabeginner.onetomany.unidirectional.PostRepository;
+import com.derniweb.springdatabeginner.onetomany.unidirwithjoincol.PostCommentwjc;
+import com.derniweb.springdatabeginner.onetomany.unidirwithjoincol.Postwjc;
+import com.derniweb.springdatabeginner.onetomany.unidirwithjoincol.PostwjcRepository;
 import com.derniweb.springdatabeginner.repository.TreadmillRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -20,13 +29,21 @@ public class SpringDataBeginnerApplication {
     @Component
     public class Runner implements CommandLineRunner {
         private final TreadmillRepository repository;
+        private final PostRepository postRepository;
+        private final PostwjcRepository postwjcRepository;
 
-        public Runner(TreadmillRepository repository) {
+        private final PostBidirRepository postBidirRepository;
+
+        public Runner(TreadmillRepository repository, PostRepository postRepository, PostwjcRepository postwjcRepository, PostBidirRepository postBidirRepository) {
             this.repository = repository;
+            this.postRepository = postRepository;
+            this.postwjcRepository = postwjcRepository;
+            this.postBidirRepository = postBidirRepository;
         }
 
         @Override
         public void run(String... args) {
+            /*
             System.out.println("Before save:");
             doWeHaveSomethingInDb();
 
@@ -44,6 +61,15 @@ public class SpringDataBeginnerApplication {
 
             System.out.println("Delete from db");
             deleteFromDb();
+            */
+            System.out.println("Starting oneToManyUniDir");
+            oneToManyUniDir();
+
+            System.out.println("Starting with join column");
+            oneToManyUniDirWithJoinCol();
+
+            System.out.println("Starting one to many bidirectional");
+            oneToManyBiDirectional();
         }
 
         private void doWeHaveSomethingInDb() {
@@ -146,13 +172,105 @@ public class SpringDataBeginnerApplication {
             System.out.println("Deleting...");
             Optional<Treadmill> proXTreadmill = repository.findById("bbb");
             proXTreadmill.ifPresent(
-                    treadmill -> {
-                        repository.delete(treadmill);
-                    }
+                    repository::delete
             );
 
             System.out.println("After delete: ");
             printAllTreadmills();
+        }
+
+        private void oneToManyUniDir() {
+            /*
+                This onetomany unidir will create 3 tables. 2 based on entities
+                And one common table with both primary keys, so i guess it looks like
+                a many to many structurally
+             */
+            Post post = new Post("First post");
+
+            post.getComments().add(
+                    new PostComment("My first review")
+            );
+            post.getComments().add(
+                    new PostComment("My second review")
+            );
+            post.getComments().add(
+                    new PostComment("My third review")
+            );
+            postRepository.save(post);
+        }
+
+        private void oneToManyUniDirWithJoinCol() {
+            /*
+                Added a join column to the previous example
+                With this joincolumn solution we have only 2 tables.
+                A foreign key is created with the joincolumn at the postcomment table
+                These are the columns from the postcommentwjc table:
+                    ID  	REVIEW  	POSTWJC_ID
+             */
+            Postwjc post = new Postwjc("First post");
+
+            post.getComments().add(
+                    new PostCommentwjc("My first review")
+            );
+            post.getComments().add(
+                    new PostCommentwjc("My second review")
+            );
+            post.getComments().add(
+                    new PostCommentwjc("My third review")
+            );
+            postwjcRepository.save(post);
+            /*
+                the results in the terminal
+                Starting with join column
+                Hibernate: call next value for hibernate_sequence
+                Hibernate: call next value for hibernate_sequence
+                Hibernate: call next value for hibernate_sequence
+                Hibernate: call next value for hibernate_sequence
+                Hibernate: insert into postwjc (title, id) values (?, ?)
+                Hibernate: insert into post_commentwjc (review, id) values (?, ?)
+                Hibernate: insert into post_commentwjc (review, id) values (?, ?)
+                Hibernate: insert into post_commentwjc (review, id) values (?, ?)
+                Hibernate: update post_commentwjc set postwjc_id=? where id=?
+                Hibernate: update post_commentwjc set postwjc_id=? where id=?
+                Hibernate: update post_commentwjc set postwjc_id=? where id=?
+             */
+        }
+
+        private void oneToManyBiDirectional() {
+            /*
+                WE ARE USING A BIDIRECTIONAL ONETOMANY RELATIONSHIP
+                THE TABLE STRUCTURE STAYS THE SAME AS WITH UNIDIRECTIONAL WITH JOINCOLUMN
+                BUT WE HAVE FEWER HIBERNATE SQL STATEMENTS WHEN RUNNING.
+                SO PERFORMANCE IS OPTIMIZED.
+                Until now this is the best way to map a one-to-many relations
+             */
+            Postbidir post = new Postbidir("First post");
+
+            post.addComment(
+                    new PostCommentbidir("My first review")
+            );
+            post.addComment(
+                    new PostCommentbidir("My second review")
+            );
+            post.addComment(
+                    new PostCommentbidir("My third review")
+            );
+            postBidirRepository.save(post);
+            /*
+                the results in terminal
+                Starting with join column
+                Hibernate: call next value for hibernate_sequence
+                Hibernate: call next value for hibernate_sequence
+                Hibernate: call next value for hibernate_sequence
+                Hibernate: call next value for hibernate_sequence
+                Hibernate: insert into postwjc (title, id) values (?, ?)
+                Hibernate: insert into post_commentwjc (review, id) values (?, ?)
+                Hibernate: insert into post_commentwjc (review, id) values (?, ?)
+                Hibernate: insert into post_commentwjc (review, id) values (?, ?)
+                Hibernate: update post_commentwjc set postwjc_id=? where id=?
+                Hibernate: update post_commentwjc set postwjc_id=? where id=?
+                Hibernate: update post_commentwjc set postwjc_id=? where id=?
+             */
         }
     }
 }
