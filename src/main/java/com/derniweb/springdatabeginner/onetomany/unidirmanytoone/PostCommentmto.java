@@ -26,7 +26,7 @@ public class PostCommentmto {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="post_mto_id")
-    private Postbidir post;
+    private Postmto post;
 
 
 }

@@ -5,6 +5,21 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+/*
+https://vladmihalcea.com/the-best-way-to-map-a-onetomany-association-with-jpa-and-hibernate/
+you cannot limit the size of a @OneToMany collection like it would be the case if you used query-level pagination.
+
+Therefore, most of the time, the @ManyToOne annotation on the child side is everything you need. But then, how do you get the child entities associated with a Post entity?
+
+Well, all you need is just a single JPQL query:
+    List<PostComment> comments = entityManager.createQuery(
+        "select pc " +
+        "from PostComment pc " +
+        "where pc.post.id = :postId", PostComment.class)
+    .setParameter( "postId", 1L )
+    .getResultList();
+ */
+
 @Entity(name = "Postmto")
 @Table(name = "post_mto")
 public class Postmto {
